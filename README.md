@@ -29,3 +29,17 @@ cat file.txt | python correxxt.py
 
 The tool will output each misspelled word along with the most likely
 correction and a list of candidate suggestions.
+
+### Custom dictionary
+
+You can maintain a file with custom words that should be treated as
+correct. Use `--dict` to specify the file and `--add-word` or
+`--remove-word` to manage entries:
+
+```bash
+# Create or update a custom dictionary
+python correxxt.py --dict mywords.txt --add-word foobar
+
+# Check text using that dictionary
+python correxxt.py --dict mywords.txt foobar
+```

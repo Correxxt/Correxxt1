@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1 10-Year Analytics Artifact</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:#0b0d12;color:#f5f7fa}
+    .wrap{max-width:1200px;margin:0 auto;padding:24px}
+    .hero{background:linear-gradient(120deg,#e10600,#6b0000);padding:20px;border-radius:16px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
+    .card,.panel{background:#171b23;border:1px solid #2e3440;border-radius:12px;padding:14px}
+    canvas{max-height:340px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Formula 1 Analytics (2016–2025)</h1>
+      <p>Standalone HTML artifact based on real race result data.</p>
+      <p id="meta"></p>
+    </div>
+    <div class="grid" id="kpis"></div>
+    <div class="panel"><h3>Top Drivers by Points</h3><canvas id="drivers"></canvas></div>
+    <div class="panel"><h3>Top Teams by Points</h3><canvas id="teams"></canvas></div>
+    <div class="panel"><h3>Most Frequent Grand Prix</h3><canvas id="gps"></canvas></div>
+    <div class="panel"><h3>Most Wins by Driver</h3><canvas id="wins"></canvas></div>
+  </div>
+<script>
+(async function(){
+  const data = await fetch('./src/data/f1-results-2016-2025.json').then(r=>r.json());
+  const races = data.races;
+  const driverPoints = new Map(), teamPoints = new Map(), gpCounts = new Map(), wins = new Map();
+  for (const race of races){
+    for (const r of race.Results){
+      const d = `${r.Driver.givenName} ${r.Driver.familyName}`;
+      const p = Number(r.points);
+      driverPoints.set(d,(driverPoints.get(d)||0)+p);
+      teamPoints.set(r.Constructor.name,(teamPoints.get(r.Constructor.name)||0)+p);
+      gpCounts.set(race.raceName,(gpCounts.get(race.raceName)||0)+1);
+      if(r.position==='1') wins.set(d,(wins.get(d)||0)+1);
+    }
+  }
+  const top=(m,n)=>[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n);
+  const topDrivers=top(driverPoints,10), topTeams=top(teamPoints,10), topGps=top(gpCounts,10), topWins=top(wins,10);
+  document.getElementById('meta').textContent = `Source: ${data.source} | Fetched: ${data.fetchedAt} | Races: ${races.length}`;
+  const kpis=[['Races analyzed',races.length],['Drivers with points',driverPoints.size],['Teams represented',teamPoints.size],['Seasons',`${data.range.start}-${data.range.end}`]];
+  document.getElementById('kpis').innerHTML=kpis.map(([k,v])=>`<div class='card'><div>${k}</div><h2>${v}</h2></div>`).join('');
+
+  function bar(id, rows, color){new Chart(document.getElementById(id),{type:'bar',data:{labels:rows.map(r=>r[0]),datasets:[{data:rows.map(r=>r[1]),backgroundColor:color}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#dbe2f0'}},y:{ticks:{color:'#dbe2f0'}}}}});}
+  bar('drivers',topDrivers,'#ff2d20');
+  bar('teams',topTeams,'#ff9f1a');
+  bar('gps',topGps,'#5dade2');
+  bar('wins',topWins,'#58d68d');
+})();
+</script>
+</body>
+</html>
